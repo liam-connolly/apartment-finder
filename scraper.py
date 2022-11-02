@@ -110,5 +110,5 @@ def do_scrape():
 
     print("{}: Got {} results".format(time.ctime(), len(all_results)))
 
-    for result in all_results:
-        post_listing_to_slack(sc, result)
+    #for result in all_results:
+        #post_listing_to_slack(sc, result)
