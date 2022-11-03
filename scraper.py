@@ -19,6 +19,7 @@ engine = create_engine('sqlite:///listings.db', echo = False)
 
 Base = declarative_base()
 
+#Table for storing listing data
 class Listing(Base):
     __tablename__ = 'listings'
 
@@ -40,6 +41,8 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
 
+#Scrapes for certain geographic areas and finds the latest listings
+#Returns a list of results
 def scrape_area(area):
     clh = CraigslistHousing(site = settings.CRAIGSLIST_CITY, area = area, category='one-bedroom-apartment', 
                             filters= {'max_price' : settings.MAX_PRICE, 'min_price' : settings.MIN_PRICE})
@@ -60,44 +63,49 @@ def scrape_area(area):
         if listing is None:
             if result["where"] is None:
                 continue
-        lat = 0        
-        lon = 0
-        if result["geotag"] is not None:
-            lat = result["geotag"][0]
-            lon = result["geotag"][1]
+            lat = 0        
+            lon = 0
+            if result["geotag"] is not None:
+                lat = result["geotag"][0]
+                lon = result["geotag"][1]
 
-            geo_data = find_points_of_interest(result["geotag"], result["where"])
-            result.update(geo_data)
-        else:
-            result["area"] = ""
-            result["cta"] = ""
+                geo_data = find_points_of_interest(result["geotag"], result["where"])
+                result.update(geo_data)
+            else:
+                result["area"] = ""
+                result["cta"] = ""
 
-        price = 0
-        try:
-            removeDollar = result['price'].replace('$', '')
-            removeComma = removeDollar.replace(',', '')
-            price = float(removeComma)
-        except Exception:
-            pass
+            #formatting price
+            price = 0
+            try:
+                removeDollar = result['price'].replace('$', '')
+                removeComma = removeDollar.replace(',', '')
+                price = float(removeComma)
+            except Exception:
+                pass
 
-        listing = Listing(
-            link = result['url'],
-            created = parse(result['datetime']),
-            lat = lat,
-            lon = lon,
-            name = result['name'],
-            price = price,
-            location = result['where'],
-            cl_id = result['id'],
-            area = result['area'],
-            cta_stop = result['cta']
-        )
+            #Creates listing from data and adds to database
+            listing = Listing(
+                link = result['url'],
+                created = parse(result['datetime']),
+                lat = lat,
+                lon = lon,
+                name = result['name'],
+                price = price,
+                location = result['where'],
+                cl_id = result['id'],
+                area = result['area'],
+                cta_stop = result['cta']
+            )
+            
+            session.add(listing)
+            session.commit()
+            
+            #This is where we filter out the results we want
 
-        session.add(listing)
-        session.commit()
-
-        if len(result["cta"]) > 0 or len(result["area"]) > 0:
-            results.append(result)
+            if len(result["cta"]) > 0 or len(result["area"]) > 0:
+                if 'studio' not in result['name'].lower():
+                    results.append(result)
     
     return results  
 
@@ -110,5 +118,7 @@ def do_scrape():
 
     print("{}: Got {} results".format(time.ctime(), len(all_results)))
 
-    #for result in all_results:
-        #post_listing_to_slack(sc, result)
+     
+    for result in all_results:
+        post_listing_to_slack(sc, result)
+        
