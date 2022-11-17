@@ -19,7 +19,7 @@ def in_box(coords, box):
 
 
 def post_listing_to_slack(sc, listing):
-    desc = "{0} | {1} | {2} | {3} | <{4}>".format(listing["area"], listing["price"], listing["cta_dist"], listing["name"], listing["url"])
+    desc = "Area: {0} \nPrice: {1} \n Distance to nearest L Stop: {2} \nName: {3} \nLink: <{4}>".format(listing["area"], listing["price"], listing["cta_dist"], listing["name"], listing["url"])
     sc.api_call(
         "chat.postMessage",
         json = {
