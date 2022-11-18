@@ -16,7 +16,6 @@ from dateutil.parser import parse
 from util import find_points_of_interest, post_listing_to_slack
 
 engine = create_engine('sqlite:///listings.db', echo = False)
-
 Base = declarative_base()
 
 #Table for storing listing data
@@ -101,24 +100,25 @@ def scrape_area(area):
             session.add(listing)
             session.commit()
             
-            #This is where we filter out the results we want
-
+            #This is where we filter out the results we want in terms of location
             if len(result["cta"]) > 0 or len(result["area"]) > 0:
                 if 'studio' not in result['name'].lower():
                     results.append(result)
     
     return results  
 
-
+#Driver Function
 def do_scrape():
 
+    #Connects to Slack Web Client
     sc = WebClient(settings.SLACK_TOKEN)
+
+    #list of all results continuously added to results
     all_results = []
     all_results += scrape_area('chc')
+    print("{}: Returned {} results".format(time.ctime(), len(all_results)))
 
-    print("{}: Got {} results".format(time.ctime(), len(all_results)))
-
-     
+    
     for result in all_results:
         post_listing_to_slack(sc, result)
         
