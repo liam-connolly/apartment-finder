@@ -43,17 +43,19 @@ session = Session()
 #Scrapes for certain geographic areas and finds the latest listings
 #Returns a list of results
 def scrape_area(area):
-    clh = CraigslistHousing(site = settings.CRAIGSLIST_CITY, area = area, category='one-bedroom-apartment', 
+    clh = CraigslistHousing(site = 'chicago', area = 'chc',
                             filters= {'max_price' : settings.MAX_PRICE, 'min_price' : settings.MIN_PRICE})
     
     #results will be returned
     results = [] 
-    gen = clh.get_results(sort_by='newest',  geotagged=True, limit=10)
+    gen = clh.get_results(sort_by='newest',  geotagged=True, limit=20)
+    print
 
     while True:
         try:
             result = next(gen)
         except StopIteration:
+            print('StopIteration occured')
             break
         except Exception:
             continue
@@ -74,7 +76,7 @@ def scrape_area(area):
                 result["area"] = ""
                 result["cta"] = ""
 
-            #formatting price
+            # formatting price
             price = 0
             try:
                 removeDollar = result['price'].replace('$', '')
@@ -83,7 +85,7 @@ def scrape_area(area):
             except Exception:
                 pass
 
-            #Creates listing from data and adds to database
+            # Creates listing from data and adds to database
             listing = Listing(
                 link = result['url'],
                 created = parse(result['datetime']),
@@ -115,10 +117,9 @@ def do_scrape():
 
     #list of all results continuously added to results
     all_results = []
-    all_results += scrape_area('chc')
+    all_results += scrape_area(settings.AREAS)
     print("{}: Returned {} results".format(time.ctime(), len(all_results)))
 
-    
     for result in all_results:
         post_listing_to_slack(sc, result)
         
